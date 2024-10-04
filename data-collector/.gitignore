@@ -11,3 +11,4 @@ scripts/test/csv/*
 oc
 .env*
 test_key.pgp
+data

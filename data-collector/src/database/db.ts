@@ -1,5 +1,6 @@
-import * as pg from "pg";
-import { SQLStatement } from "sql-template-strings";
+import knex, { Knex } from 'knex';
+import * as pg from 'pg';
+import { SQLStatement } from 'sql-template-strings';
 
 const getDbHost = () => process.env.POSTGRES_SERVER_HOST;
 const getDbPort = () => Number(process.env.POSTGRES_SERVER_PORT ?? 5432);
@@ -8,11 +9,10 @@ const getDbPassword = () => process.env.POSTGRES_PASSWORD;
 const getDbDatabase = () => process.env.POSTGRES_DB;
 
 const DB_POOL_SIZE: number = Number(process.env.DB_POOL_SIZE) || 20;
-const DB_CONNECTION_TIMEOUT: number =
-  Number(process.env.DB_CONNECTION_TIMEOUT) || 10000;
+const DB_CONNECTION_TIMEOUT: number = Number(process.env.DB_CONNECTION_TIMEOUT) || 10000;
 const DB_IDLE_TIMEOUT: number = Number(process.env.DB_IDLE_TIMEOUT) || 10000;
 
-export const DB_CLIENT = "pg";
+export const DB_CLIENT = 'pg';
 
 export const defaultPoolConfig: pg.PoolConfig = {
   user: getDbUsername(),
@@ -22,7 +22,7 @@ export const defaultPoolConfig: pg.PoolConfig = {
   host: getDbHost(),
   max: DB_POOL_SIZE,
   connectionTimeoutMillis: DB_CONNECTION_TIMEOUT,
-  idleTimeoutMillis: DB_IDLE_TIMEOUT,
+  idleTimeoutMillis: DB_IDLE_TIMEOUT
 };
 
 // Custom type handler for psq `DATE` type to prevent local time/zone information from being added.
@@ -86,6 +86,15 @@ export const getDBPool = function (): pg.Pool | undefined {
 
 export interface IDBConnection {
   /**
+   * Get a new pg client.
+   *
+   * Note: This is not the same client that is initialized when calling `.open()`, and must be released manually by
+   * calling `client.release()`.
+   *
+   * @memberof IDBConnection
+   */
+  getClient: () => Promise<pg.PoolClient>;
+  /**
    * Opens a new connection, begins a transaction, and sets the user context.
    *
    * Note: Does nothing if the connection is already open.
@@ -125,10 +134,7 @@ export interface IDBConnection {
    * @deprecated Prefer using `.sql` (pass entire statement object) or `.knex` (pass knex query builder object)
    * @memberof IDBConnection
    */
-  query: <T extends pg.QueryResultRow = any>(
-    text: string,
-    values?: any[]
-  ) => Promise<pg.QueryResult<T>>;
+  query: <T extends pg.QueryResultRow = any>(text: string, values?: any[]) => Promise<pg.QueryResult<T>>;
   /**
    * Performs a query against this connection, returning the results.
    *
@@ -142,9 +148,7 @@ export interface IDBConnection {
    * @throws If the connection is not open.
    * @memberof IDBConnection
    */
-  sql: <T extends pg.QueryResultRow = any>(
-    sqlStatement: SQLStatement
-  ) => Promise<pg.QueryResult<T>>;
+  sql: <T extends pg.QueryResultRow = any>(sqlStatement: SQLStatement) => Promise<pg.QueryResult<T>>;
 }
 
 /**
@@ -175,6 +179,21 @@ export const getDBConnection = function (): IDBConnection {
   let _isReleased = false;
 
   /**
+   * Get a new pg client.
+   *
+   * @return {*}
+   */
+  const _getClient = async () => {
+    const pool = getDBPool();
+
+    if (!pool) {
+      throw Error('DBPool is not initialized');
+    }
+
+    return pool.connect();
+  };
+
+  /**
    * Opens a new connection, begins a transaction, and sets the user context.
    *
    * Note: Does nothing if the connection is already open.
@@ -189,14 +208,14 @@ export const getDBConnection = function (): IDBConnection {
     const pool = getDBPool();
 
     if (!pool) {
-      throw Error("DBPool is not initialized");
+      throw Error('DBPool is not initialized');
     }
 
     _client = await pool.connect();
     _isOpen = true;
     _isReleased = false;
 
-    await _client.query("BEGIN");
+    await _client.query('BEGIN');
   };
 
   /**
@@ -225,10 +244,10 @@ export const getDBConnection = function (): IDBConnection {
    */
   const _commit = async () => {
     if (!_client || !_isOpen) {
-      throw Error("DBConnection is not open");
+      throw Error('DBConnection is not open');
     }
 
-    await _client.query("COMMIT");
+    await _client.query('COMMIT');
   };
 
   /**
@@ -238,10 +257,10 @@ export const getDBConnection = function (): IDBConnection {
    */
   const _rollback = async () => {
     if (!_client || !_isOpen) {
-      throw Error("DBConnection is not open");
+      throw Error('DBConnection is not open');
     }
 
-    await _client.query("ROLLBACK");
+    await _client.query('ROLLBACK');
   };
 
   /**
@@ -258,7 +277,7 @@ export const getDBConnection = function (): IDBConnection {
     values?: any[]
   ): Promise<pg.QueryResult<T>> => {
     if (!_client || !_isOpen) {
-      throw Error("DBConnection is not open");
+      throw Error('DBConnection is not open');
     }
 
     return _client.query<T>(text, values || []);
@@ -273,20 +292,33 @@ export const getDBConnection = function (): IDBConnection {
    * @throws {Error} if the connection is not open
    * @return {*}  {Promise<pg.QueryResult<T>>}
    */
-  const _sql = async <T extends pg.QueryResultRow = any>(
-    sqlStatement: SQLStatement
-  ): Promise<pg.QueryResult<T>> => {
+  const _sql = async <T extends pg.QueryResultRow = any>(sqlStatement: SQLStatement): Promise<pg.QueryResult<T>> => {
     const response = await _query(sqlStatement.text, sqlStatement.values);
 
     return response;
   };
 
   return {
+    getClient: _getClient,
     open: _open,
     query: _query,
     sql: _sql,
     release: _release,
     commit: _commit,
-    rollback: _rollback,
+    rollback: _rollback
   };
+};
+
+/**
+ * Get a Knex instance.
+ *
+ * @template TRecord
+ * @template TResult
+ * @return {*}  {Knex<TRecord,TResult>}
+ */
+export const getKnex = <TRecord extends Record<string, any> = any, TResult = Record<string, any>[]>(): Knex<
+  TRecord,
+  TResult
+> => {
+  return knex<TRecord, TResult>({ client: DB_CLIENT });
 };

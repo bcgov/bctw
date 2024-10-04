@@ -1,24 +1,30 @@
 {
   "compilerOptions": {
-    "target": "es5" /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019', 'ES2020', or 'ESNEXT'. */,
-    "module": "commonjs" /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', 'es2020', or 'ESNext'. */,
-    "outDir": "build" /* Redirect output structure to the directory. */,
-    "sourceMap": true /* Generates corresponding '.map' file. */,
-    "lib": [
-      "es6",
-      "ES2020.Promise"
-    ] /* Specify library files to be included in the compilation. */,
-    "allowJs": true /* Allow javascript files to be compiled. */,
-    "rootDir": "src" /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */,
-    "strict": true /* Enable all strict type-checking options. */,
-    "noImplicitAny": false /* Raise error on expressions and declarations with an implied 'any' type. */,
+    "module": "commonjs",
+    "lib": ["es2020"],
+    "outDir": "dist",
+    "target": "es2018",
+    "sourceMap": true,
+    "allowJs": false,
     "moduleResolution": "node",
-    "esModuleInterop": true /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */,
-    "resolveJsonModule": true /* Include modules imported with '.json' extension */,
-    "skipLibCheck": true /* Skip type checking of declaration files. */,
-    "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */,
-    "baseUrl": "src/scripts"
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitThis": true,
+    "noImplicitAny": true,
+    "allowSyntheticDefaultImports": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noFallthroughCasesInSwitch": true,
+    "strict": true,
+    "typeRoots": ["node_modules/@types", "src/types"]
   },
-  "include": ["src/**.ts"],
-  "exclude": ["**/build", "**/node_modules"]
+  "include": ["src"],
+  "exclude": ["**/build", "**/node_modules"],
+  "ts-node": {
+    "files": true
+  }
 }

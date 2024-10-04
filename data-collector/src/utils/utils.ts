@@ -3,9 +3,7 @@
  * Used in this module as JSON objects received from vendor APIs have
  * camelCase keys, and the BCTW database has all lowercase keys.
  */
-export const toLowerCaseObjectKeys = <T extends Record<string, any>>(
-  rec: T
-): Record<string, any> => {
+export const toLowerCaseObjectKeys = <T extends Record<string, any>>(rec: T): Record<string, any> => {
   const ret: Record<string, any> = {};
 
   for (const key in rec) {
