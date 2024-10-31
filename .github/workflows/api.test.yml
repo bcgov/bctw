@@ -9,12 +9,18 @@ jobs:
       run:
         working-directory: ./bctw-api
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v3
+      - name: Checkout Repo
+        uses: actions/checkout@v1
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
         with:
           node-version: "14"
           cache: "npm"
-      - name: Setup Node
+          cache-dependency-path: bctw-api/package-lock.json
+
+      - name: Install Dependencies
         run: npm install
+
       - name: Run Tests
         run: npm run test
