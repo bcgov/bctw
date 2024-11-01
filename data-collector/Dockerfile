@@ -1,51 +1,38 @@
-FROM cypress/base:12
+FROM node:18
 
-WORKDIR /app
+USER 0
 
-# update node
-RUN npm install -g n
-RUN n stable
+ENV HOME=/opt/app-root/src
 
-# check locations and packages are correct
-RUN which node; node -v; which npm; npm -v; npm ls -g --depth=0
+# Create the app directory
+RUN mkdir -p $HOME
 
+# Set permissions for the app directory
+RUN chgrp -R 0 $HOME && \
+    chmod -R g+rwX $HOME
+
+WORKDIR $HOME
+
+# Optional: Remove build directory if it exists
+RUN rm -rf ./build
+
+# Copy package.json and package-lock.json
 COPY package*.json ./
+
+# Install dependencies
 RUN npm ci
 
-# confirm cypress can run
-RUN ./node_modules/.bin/cypress verify
+# Copy the rest of the application code
+COPY . ./
 
-# should be "root"
-RUN whoami
-# uid=0(root) gid=0(root) groups=0(root)
-RUN id
+# Set PATH for local node_modules
+ENV PATH ${HOME}/node_modules/.bin/:${HOME}/.npm-global/bin/:${HOME}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# give user read access to the "/root" folder where the binary is cached
-RUN ls -la /root
-RUN chmod 755 /root
-# point Cypress at the /root/cache no matter what user account is used
-ENV CYPRESS_CACHE_FOLDER=/root/.cache/Cypress
-# fix for "failed to get "appData' path' Electron error in OCP environment
-ENV XDG_CONFIG_HOME=/app
+# Switch to non-root user
+USER 1001
 
-RUN mkdir /app/downloads
-RUN chmod 777 /app /app/downloads
-
-# switch to non-root user "node" that comes from Docker Node image
-USER node
-# show user effective id and group - it should be non-zero, meaning the current user "node" is not root
-RUN id
-
-# user "node" should be able to access the Cypress test runner now
-RUN ls -la /root/.cache/Cypress/*/Cypress
-
-# Bundle app source
-COPY . .
-
-# add Cypress to path
-ENV PATH="/app/node_modules/cypress/bin:${PATH}"
-
-CMD [ "node", "app.js" ]
-
-# compile ts
+# Run build process
 RUN npm run build
+
+# Execute the scripts
+CMD [ "node", "src/index.js" ]
